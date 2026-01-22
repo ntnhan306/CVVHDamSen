@@ -1,66 +1,678 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Trình xem ảnh/video</title>
-<style>
-  body {
-    background-color: #f0f0f0;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  .viewer {
-    max-width: 90%;
-    max-height: 90%;
-    background: white;
-    padding: 10px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.2);
-    border-radius: 10px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  img, video {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain; /* vừa khung, không cắt */
-    display: block;
-    margin: auto;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xem File</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.3/viewer.min.css">
+    <style>
+        * {
+            overflow: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+
+        }
+
+        html, body {
+            overflow: hidden;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            min-width: 320px;
+            min-height: 570px;
+            background-color: #ccc;
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            height: 100vh;
+            transition: all 0.4s ease;
+        }
+
+        body.menu-open {
+            padding: 50px;
+        }
+
+        /* Ẩn mũi tên trong Chrome, Edge, Safari */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Ẩn mũi tên trong Firefox */
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        #menu, #viewer {
+            background-color: white;
+            border-radius: 20px;
+            padding: 10px;
+            box-sizing: border-box;
+            height: 100%;
+            min-height: 570px;
+            min-width: 300px;
+            margin: 0;
+            box-shadow: 5px 5px 12px rgba(0, 0, 0, 0.3);
+        }
+        #menu {
+            visibility: visible;
+            width: 300px;
+        }
+        #viewer {
+            flex: 3;
+            display: flex;
+            gap: 10px;
+            flex-direction: row;
+            margin-bottom: 10px;
+            background-color: white;
+        }
+        #image {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+        #video {
+            display: none;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .btn-menu {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: white;
+            border-radius: 50%;
+            height: 30px;
+            width: 30px;
+            padding: 8px;
+            cursor: pointer;
+            display: none;
+            box-shadow: 1px 1px 3px 2px rgba(0,0,0,0.2);
+            transition: all 0.4s ease;
+            z-index: 1001;
+        }
+        .btn-menu:hover {
+            box-shadow: none;
+        }
+        .btn-menu.active {
+            transform: rotate(calc(360deg * 1));
+            top: 15px;
+            left: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.0);
+            background-color: rgba(0, 0, 0, 0);
+        }
+        #overlay {
+            position: fixed;
+            visibility: hidden;
+            height: 100%;
+            width: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+
+        @media (max-width: 320px), (max-height: 570px) {
+            html {
+                overflow: auto; /* Cho phép cuộn */
+                -webkit-overflow-scrolling: touch;
+            }
+            body{
+                padding-bottom: 0px;
+            }
+            #viewer{
+                margin-bottom: 10px;
+            }
+        }
+        @media (max-width: 330px) {
+            #menu {width: calc(100vw - 10px);}
+            .btn-menu.active {
+                top: 15px;
+                left: 15px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.0);
+            }
+        }
+        @media (max-width: 750px) {
+            #menu {
+                visibility: hidden;
+                position: absolute;
+                top: 0;
+                left: 0;
+                margin: 5px;
+                height: calc(100% - 10px);
+                transform: translateX(-100%);
+                z-index: 999;
+            }
+            #menu.active {
+                visibility: visible;
+                transform: translateX(0);
+                animation: open-menu 0.4s ease forwards;
+            }
+            #menu.closing {
+                animation: close-menu 0.4s ease forwards;
+            }
+            #overlay.active {
+                visibility: visible;
+                animation: overlay-on 0.4s ease forwards;
+            }
+            #overlay.closing {
+                animation: overlay-off 0.4s ease forwards;
+            }
+            .btn-menu {
+                display: flex;
+            }
+        }
+        @keyframes overlay-on {
+            0%{opacity: 0;}
+            100%{opacity: 1;}
+        }
+        @keyframes overlay-off {
+            0%{opacity: 1;}
+            100%{opacity: 0;}
+        }
+        @keyframes open-menu {
+            0%{transform: translateX(-100%);}
+            100%{transform: translateX(0);}
+        }
+        @keyframes close-menu {
+            0% {transform: translateX(0);}
+            100% {transform: translateX(-100%);}
+        }
+        /* Bảng */
+        .file-table {
+            min-width: 150px;
+            width: 100%;
+            border-collapse: collapse; /* để border-bottom hiển thị đều */
+            background: transparent;
+            font-size: 20px;
+        }
+
+        /* Tiêu đề cột */
+        .file-table thead th {
+            text-align: center;
+            padding: 15px 10px;
+        }
+
+        /* Các ô */
+        .file-table td {
+            text-align: center;          /* căn giữa theo yêu cầu */
+            padding: 15px 10px;
+            vertical-align: middle;
+        }
+
+        /* Chỉ kẻ đường ngang giữa các hàng, màu đen mờ */
+        .file-table tbody tr {
+            border-bottom: 2px solid rgba(0,0,0,0.2);
+        }
+        .file-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        /* Mỗi hàng trông như 1 nút */
+        .file-table tbody tr.btn-row {
+            cursor: pointer;
+            transition: background-color 0.16s ease, transform 0.06s ease;
+            user-select: none;
+        }
+        .file-table tbody tr.btn-row:hover {
+            background-color: rgba(0,0,0,0.04);
+        }
+        .file-table tbody tr.btn-row:active {
+            transform: translateY(0px);
+        }
+        /* hàng của ảnh đang hiển thị */
+        .file-table tbody tr.btn-row.selected {
+            border: 1px solid rgb(0, 204, 255);
+            background-color: rgba(27, 209, 255, 0.34);
+        }
+
+        /* Tách rõ header với body (không bắt buộc) */
+        .file-table thead th {
+            border-bottom: 2px solid rgba(0,0,0,1);
+        }
+
+        /* các nút điều chỉnh hình ảnh/video */
+        #img-control {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+        }
+
+        #img-control i:hover {
+            background-color: rgba(220, 220, 220, 0.5);
+        }
+
+        #img-control i{
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            display: flex;
+            background: rgb(220, 220, 220);
+            border-radius: 15px;
+            height: 30px;
+            width: 30px;
+            padding: 8px 8px;
+            font-style: normal !important;
+        }
+
+        #img-control i input {
+            height: 100%;
+            width: 100%;
+            font-size: 30px;
+            margin: 0;
+            border: none;
+            background: transparent;
+            outline: none;
+            text-align: center;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+        }
+
+        #img-control i input:focus {
+            background-color: white;
+            border: 1px solid rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+        }
+
+        #img-zoom {
+            position: relative;
+            text-align: center;
+            width: calc(100% - 20px);
+            height: 100%;
+            margin: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            overflow: hidden; /* Ẩn phần tràn ra ngoài khi phóng to */
+            background-color: #f0f0f0;
+            touch-action: none;
+        }
+
+        #img-zoom img{
+            width: auto;
+            height: auto;
+            border: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: top left;
+            cursor: grab !important;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        #img-zoom img:active{
+            cursor: grabbing !important;
+        }
+
+        video, iframe {
+            border-radius: 20px;
+            height: 100%;
+            width: 100%;
+            flex: 1;
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
+    <div id="overlay"></div>
+    <i class="fa fa-bars fa-2x btn-menu" aria-hidden="true"></i>
+    <div id="menu">
+        <h3 style="text-align: center;width: 100%;font-size: 30px; margin-top: 5px;margin-bottom: 5px;">FILE</h3>
+        <button style="display: block; min-width: fit-content; width: 90%; height: fit-content; padding: 5px; margin: 5px 5%; text-align: center; background-color: rgb(0, 115, 255); color: white; border-radius: 10px; font-size: 20px; border: none; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.backgroundColor='rgb(0, 96, 214)';" onmouseout="this.style.backgroundColor='rgb(0, 115, 255)';" id="refresh">
+            Làm mới các file
+        </button>
+        <table class="file-table" role="table" aria-label="Danh sách file">
+            <thead>
+                <tr>
+                    <th scope="col">Type</th>
+                    <th scope="col">File id</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="btn-row" tabindex="0" data-fileid="01">
+                    <td class="type">Image</td>
+                    <td class="fileid">01</td>
+                </tr>
+                <tr class="btn-row" tabindex="0" data-fileid="02">
+                    <td class="type">Image</td>
+                    <td class="fileid">02</td>
+                </tr>
+                <tr class="btn-row" tabindex="0" data-fileid="03">
+                    <td class="type">Video</td>
+                    <td class="fileid">03</td>
+                </tr>
+                <tr class="btn-row" tabindex="0" data-fileid="04">
+                    <td class="type">Image</td>
+                    <td class="fileid">04</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="viewer">
+        <!-- test thử -->
+        <!-- <span id="text-id" style="width: 100%; font-size: 50px; text-align: center;"></span> -->
+        <div id="message" style="height: 100%;width: 100%; text-align: center;   display: flex;  align-items: center;  justify-content: center; font-size: 30px;">Chọn 1 file để xem.</div>
+        <div id="image">
+            <div id="img-zoom">
+                <img src="./01.jpg" id="img-view">
+            </div>
+            <div id="img-control">
+                <i class="fa fa-search-plus fa-2x" title= "Zoom-in" id="zoom-in" aria-hidden="true"></i>
+                <i class="fa fa-search-minus fa-2x" title= "Zoom-out" id="zoom-out" aria-hidden="true"></i>
+                <i class="fa fa-compress fa-2x" title= "Zoom-default" id="zoom-default" aria-hidden="true"></i>
+                <i style="width: 125px;">
+                    <input type="number" id="image-size-text" min="10" max="10000" value="100">
+                    <span style="font-size: 30px; min-width: 35px; width: 35px;">%</span>
+                </i>
+            </div>
+        </div>
+        <div id="video">
+            <video id="video-view" controls>
+                <source src="
+                https://download1078.mediafire.com/u2ce1b03qlzgQDnyQXnbSD5_VcMYEPk2F0Wkb5nr4lG1_sTARKyHwF7OfvT91sMdtRAksT78vsDHmqXWvgoBBGgMH3K9Ijq6ZAG5mf1tZKok76G-bqmGAiZhDqlqd8Kx67lC_rFUAfqRh44pJ_eEb0NRSjU1i87DtGPGj-8kV9eZ/nglr7xljcsw7n71/03.mp4
+                " type="video/mp4">
+            </video>
+        </div>
+    </div>
+    <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
+    <script>
+        const menu = document.getElementById('menu');
+        const overlay = document.getElementById('overlay');
+        const btnMenu = document.querySelector('.btn-menu');
+        
+        const btnRows = document.querySelectorAll('.btn-row');
+        const textid = document.getElementById('text-id'); 
+        
+        const ImageView = document.getElementById('image');
+        const VideoView = document.getElementById('video');
+        const video = document.getElementById('video-view');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // test thử
+            // textid.textContent = document.querySelector('.btn-row.selected').textContent;
+            btnLoad();
+            document.getElementById('message').style.display = 'flex';
+            ImageView.style.display = 'none';
+            VideoView.style.display = 'none';
 
-<div class="viewer" id="viewer"></div>
+            // Khi ảnh load thì set scale mặc định theo khung
+            const img = document.getElementById('img-view');
+            img.addEventListener('load', () => {
+                const imgW = img.naturalWidth;
+                const imgH = img.naturalHeight;
+                const frameW = img.parentElement.clientWidth;
+                const frameH = img.parentElement.clientHeight;
 
-<script>
-  // Danh sách file video
-  const videoList = [3, 8, 66, 67, 74];
-  // Lấy số file từ query string (?id=...)
-  const urlParams = new URLSearchParams(window.location.search);
-  let id = parseInt(urlParams.get('id')) || 1;
+                // tỉ lệ fit theo chiều dài hơn
+                const scaleFit = Math.min(frameW / imgW, frameH / imgH);
 
-  const viewer = document.getElementById('viewer');
+                // set zoom Panzoom
+                panzoom.zoom(scaleFit, { animate: false });
+                // panzoom.pan(0, 0);
 
-  if (videoList.includes(id)) {
-    // Hiển thị video
-    viewer.innerHTML = `
-      <video controls autoplay>
-        <source src="image/${String(id).padStart(2, '0')}.mp4" type="video/mp4">
-        Trình duyệt của bạn không hỗ trợ video.
-      </video>
-    `;
-  } else {
-    // Hiển thị ảnh
-    viewer.innerHTML = `
-      <img src="image/${String(id).padStart(2, '0')}.jpg" alt="Ảnh số ${id}">
-    `;
-  }
-</script>
+                // cập nhật ô input % zoom = 100
+                lastValue = 100;
+                zoomInput.value = 100;
 
+                console.log("Ảnh fit vào khung với scale =", scaleFit);
+            });
+        });
+
+        document.getElementById('refresh').addEventListener('click', () => {
+            if (window.innerWidth < 750 & btnMenu.display !== 'none') {
+                closeMenu();
+            }
+            setTimeout(() => {
+                location.reload();
+            }, 450);
+        });
+
+        function openMenu() {
+            menu.style.display = '';
+            document.body.classList.add('menu-open');
+            menu.style.visibility = 'visible';
+            menu.classList.add('active');
+            menu.classList.remove('closing');
+            overlay.style.visibility = 'visible';
+            overlay.classList.add('active');
+            overlay.classList.remove('closing');
+            btnMenu.classList.add('active');
+            setTimeout(() => {
+                btnMenu.classList.remove('fa-bars');
+                btnMenu.classList.add('fa-times');
+            }, 200);
+        }    
+        
+        function closeMenu(instant = false) {
+            document.body.classList.remove('menu-open');
+            menu.classList.add('closing');
+            menu.classList.remove('active');
+            overlay.classList.add('closing');
+            overlay.classList.remove('active');
+            btnMenu.classList.remove('active');
+            setTimeout(() => {
+                btnMenu.classList.remove('fa-times');
+                btnMenu.classList.add('fa-bars');
+            }, 200);
+            const delay = instant ? 0 : 400;
+            setTimeout(() => {
+                menu.classList.remove('closing');
+                menu.style.visibility = 'hidden';
+                overlay.classList.remove('closing');
+                overlay.style.visibility = 'hidden';
+                menu.style.display = 'none';
+            }, delay);    
+        }
+
+        function btnLoad() {
+            if (document.querySelector('.btn-row.selected')){
+                setTimeout(() => {
+                    document.getElementById('refresh').style.display = 'block';
+                }, 100);
+            } else {
+                document.getElementById('refresh').style.display = 'none';
+            }
+        }
+
+        setInterval(() => {
+            btnLoad();
+        }, 5000);
+
+        btnMenu.addEventListener('click', () => {
+            if (!menu.classList.contains('active')) {
+                openMenu();
+            } else {
+                closeMenu();
+            }
+            if(document.querySelector('.btn-row.selected .type').textContent === 'Video') {
+                document.getElementById('video-view').pause();
+            }
+        });
+
+        document.body.addEventListener('click', (e) => {
+            const selected = document.querySelector('.btn-row.selected .type');
+            if (selected && selected.textContent === 'Video') {
+                // Chỉ pause nếu click KHÔNG nằm trên chính video
+                if (!video.contains(e.target)) {
+                    video.pause();
+                }
+            }
+        });
+
+        
+        menu.addEventListener('click', (e) => {
+            const selected = document.querySelector('.btn-row.selected .type');
+            if (selected && selected.textContent === 'Video') {
+                if (!video.contains(e.target)) {
+                    video.pause();
+                }
+            }
+        });
+
+
+        // Xử lý khi click ra ngoài vùng menu
+        overlay.addEventListener('click', () => {
+            closeMenu(false);
+        });    
+
+        // Xử lý khi resize màn hình
+        window.addEventListener('resize', () => {
+
+            if (window.innerWidth > 750) {
+                menu.style.display = '';
+                // Xóa animation và class mobile
+                menu.classList.remove('active', 'closing');
+                overlay.classList.remove('active', 'closing');
+                btnMenu.classList.remove('active', 'fa-times');
+                btnMenu.classList.add('fa-bars');
+                
+                // Hiện menu cố định trên desktop
+                menu.style.visibility = 'visible';
+                menu.style.transform = 'translateX(0)';
+                
+                // Ẩn overlay vì desktop không cần
+                overlay.style.visibility = 'hidden';
+            } else {
+                if (menu.classList.contains('active')) {
+                    closeMenu();
+                }    
+                menu.style.display = 'none';
+                document.body.classList.remove('menu-open');
+                menu.classList.remove('active');
+                menu.style.visibility = 'hidden';
+                overlay.classList.remove('active');
+                btnMenu.classList.remove('active', 'fa-times');
+                btnMenu.classList.add('fa-bars');
+                document.body.style.padding = '10px';
+            }    
+        });    
+
+        btnRows.forEach(row => {
+            btnLoad();
+            row.addEventListener('click', () => {
+                const currentSelected = document.querySelector('.btn-row.selected .type');
+
+                // Nếu file hiện tại là Video thì pause trước khi chuyển
+                if (currentSelected && currentSelected.textContent === 'Video') {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+
+                // Xóa class selected ở tất cả các hàng
+                btnRows.forEach(r => r.classList.remove('selected'));
+                
+                // Thêm class selected vào hàng được click
+                row.classList.add('selected');
+                
+                // test thử
+                // textid.textContent = row.textContent;
+                document.getElementById('message').style.display = 'none';
+                const type = row.querySelector('.type');
+                if (type.textContent === "Image") {
+                    ImageView.style.display = 'flex';
+                    VideoView.style.display = 'none';
+                } else if(type.textContent === "Video") {
+                    ImageView.style.display = 'none';
+                    VideoView.style.display = 'flex';
+                } else {
+                    ImageView.style.display = 'none';
+                    VideoView.style.display = 'none';
+                }
+                document.getElementById('viewer').style.padding = (type.textContent === "Image") ? '10px' : '0px';
+                if (window.innerWidth < 750 & btnMenu.display !== 'none') {
+                    closeMenu();
+                }
+            });
+        });
+
+        /* ==== Phần điều khiển ảnh ==== */
+        const imgZoom = document.getElementById('img-view');
+        const zoomInput = document.getElementById('image-size-text');
+
+        const panzoom = Panzoom(imgZoom, {
+            contain: 'outside',
+            maxScale: 100,
+            minScale: 0.001,
+            startScale: 1,
+            duration: 200
+        });
+
+        // Bật cuộn chuột để zoom
+        imgZoom.addEventListener('wheel',panzoom.zoomWithWheel);
+        imgZoom.addEventListener('wheel',() => {
+            zoomInput.value = Math.round(panzoom.getScale()*100);
+        });
+        let zoomLevel = 1;
+
+        // Zoom in
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            if (zoomLevel < 100) {
+                panzoom.zoom(panzoom.getScale()+0.1,{animate: true});
+                zoomInput.value = Math.round(panzoom.getScale()*100);
+            }
+        });
+
+        // Zoom out
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            if (zoomLevel > 0.1) {
+                panzoom.zoom(panzoom.getScale()-0.1,{animate: true});
+                zoomInput.value = Math.round(panzoom.getScale()*100);
+            }
+        });
+
+        // Zoom default
+        document.getElementById('zoom-default').addEventListener('click', () => {
+            panzoom.zoom(panzoom.getScale()-(panzoom.getScale()-1),{animate: true});
+            zoomInput.value = Math.round(panzoom.getScale()*100);
+        });
+
+        // Nhập % zoom
+        let lastValue = 100;
+        zoomInput.value = lastValue;
+
+        zoomInput.addEventListener('blur', () => {
+            let value = Number(zoomInput.value); // ép sang số
+            if (zoomInput.value === "" || value < 10 || value > 10000 || isNaN(value)) {
+                // Nếu ngoài khoảng → quay lại giá trị cũ
+                zoomInput.value = lastValue;
+                panzoom.zoom(lastValue / 100);
+            } else {
+                // Nếu hợp lệ → lưu lại để làm giá trị cũ khi sai
+                lastValue = value;
+                panzoom.zoom(value / 100);
+            }
+        });
+        zoomInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                zoomInput.blur();
+            }
+        });
+        // Nghe khi kéo (drag)
+        setInterval(() => {
+            console.clear(); // cho dễ nhìn
+            console.log('Vị trí:', panzoom.getPan());
+            console.log('Scale:', panzoom.getScale());
+        }, 200);
+    </script>
 </body>
 </html>
