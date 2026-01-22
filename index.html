@@ -201,12 +201,27 @@
             border-collapse: collapse; /* để border-bottom hiển thị đều */
             background: transparent;
             font-size: 20px;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Tiêu đề cột */
+        /* Tiêu đề cột - cố định */
+        .file-table thead {
+            display: block;
+            width: 100%;
+        }
+
         .file-table thead th {
             text-align: center;
             padding: 15px 10px;
+            display: inline-block;
+            width: 50%;
+            box-sizing: border-box;
+        }
+
+        /* Thead border bottom */
+        .file-table thead th {
+            border-bottom: 2px solid rgba(0,0,0,1);
         }
 
         /* Các ô */
@@ -214,6 +229,9 @@
             text-align: center;          /* căn giữa theo yêu cầu */
             padding: 15px 10px;
             vertical-align: middle;
+            display: inline-block;
+            width: 50%;
+            box-sizing: border-box;
         }
 
         /* Tbody cuộn nhưng ẩn scrollbar */
@@ -222,6 +240,7 @@
             max-height: calc(100vh - 280px);
             overflow-y: auto;
             scrollbar-width: none; /* Firefox */
+            width: 100%;
         }
         .file-table tbody::-webkit-scrollbar {
             display: none; /* Chrome, Safari, Edge */
@@ -230,9 +249,8 @@
         /* Chỉ kẻ đường ngang giữa các hàng, màu đen mờ */
         .file-table tbody tr {
             border-bottom: 2px solid rgba(0,0,0,0.2);
-            display: table;
+            display: block;
             width: 100%;
-            table-layout: fixed;
         }
         .file-table tbody tr:last-child {
             border-bottom: none;
@@ -254,11 +272,6 @@
         .file-table tbody tr.btn-row.selected {
             border: 1px solid rgb(0, 204, 255);
             background-color: rgba(27, 209, 255, 0.34);
-        }
-
-        /* Tách rõ header với body (không bắt buộc) */
-        .file-table thead th {
-            border-bottom: 2px solid rgba(0,0,0,1);
         }
 
         /* các nút điều chỉnh hình ảnh/video */
