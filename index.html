@@ -349,22 +349,6 @@
                 </tr>
             </thead>
             <tbody>
-                <tr class="btn-row" tabindex="0" data-fileid="01">
-                    <td class="type">Image</td>
-                    <td class="fileid">01</td>
-                </tr>
-                <tr class="btn-row" tabindex="0" data-fileid="02">
-                    <td class="type">Image</td>
-                    <td class="fileid">02</td>
-                </tr>
-                <tr class="btn-row" tabindex="0" data-fileid="03">
-                    <td class="type">Video</td>
-                    <td class="fileid">03</td>
-                </tr>
-                <tr class="btn-row" tabindex="0" data-fileid="04">
-                    <td class="type">Image</td>
-                    <td class="fileid">04</td>
-                </tr>
             </tbody>
         </table>
     </div>
@@ -374,7 +358,7 @@
         <div id="message" style="height: 100%;width: 100%; text-align: center;   display: flex;  align-items: center;  justify-content: center; font-size: 30px;">Chọn 1 file để xem.</div>
         <div id="image">
             <div id="img-zoom">
-                <img src="./01.jpg" id="img-view">
+                <img src="./image/01.jpg" id="img-view">
             </div>
             <div id="img-control">
                 <i class="fa fa-search-plus fa-2x" title= "Zoom-in" id="zoom-in" aria-hidden="true"></i>
@@ -396,11 +380,68 @@
     </div>
     <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
     <script>
+        /* ===== DANH SÁCH FILE CẦN LOAD ===== */
+        const fileList = [
+            { name: '01', type: 'Image', path: './image/01.jpg' },
+            { name: '02', type: 'Image', path: './image/02.jpg' },
+            { name: '03', type: 'Image', path: './image/03.jpg' },
+            { name: '04', type: 'Image', path: './image/04.jpg' },
+            { name: '05', type: 'Image', path: './image/05.jpg' },
+            { name: '06', type: 'Image', path: './image/06.jpg' },
+            { name: '07', type: 'Image', path: './image/07.jpg' },
+            { name: '08', type: 'Image', path: './image/08.jpg' },
+            { name: '09', type: 'Image', path: './image/09.jpg' },
+            { name: '10', type: 'Image', path: './image/10.jpg' }
+        ];
+
+        /* ===== HÀM KHỞI TẠO BẢNG FILE TỰ ĐỘNG ===== */
+        function initializeFileTable(files) {
+            const tbody = document.querySelector('.file-table tbody');
+            tbody.innerHTML = ''; // Xóa các hàng cũ
+            
+            files.forEach(file => {
+                const row = document.createElement('tr');
+                row.className = 'btn-row';
+                row.setAttribute('tabindex', '0');
+                row.setAttribute('data-fileid', file.name);
+                row.setAttribute('data-type', file.type);
+                row.setAttribute('data-path', file.path);
+                
+                row.innerHTML = `
+                    <td class="type">${file.type}</td>
+                    <td class="fileid">${file.name}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        /* ===== HÀM LOAD MEDIA (ẢNH HOẶC VIDEO) ===== */
+        function loadMedia(type, path) {
+            const ImageView = document.getElementById('image');
+            const VideoView = document.getElementById('video');
+            const imgView = document.getElementById('img-view');
+            const videoView = document.getElementById('video-view');
+            
+            if (type === 'Image') {
+                ImageView.style.display = 'flex';
+                VideoView.style.display = 'none';
+                imgView.src = path; // Tự động set src ảnh
+                document.getElementById('viewer').style.padding = '10px';
+            } else if (type === 'Video') {
+                ImageView.style.display = 'none';
+                VideoView.style.display = 'flex';
+                videoView.querySelector('source').src = path; // Tự động set src video
+                videoView.load(); // Load lại video element
+                document.getElementById('viewer').style.padding = '0px';
+            }
+        }
+
         const menu = document.getElementById('menu');
         const overlay = document.getElementById('overlay');
         const btnMenu = document.querySelector('.btn-menu');
         
-        const btnRows = document.querySelectorAll('.btn-row');
+        let btnRows = document.querySelectorAll('.btn-row');
         const textid = document.getElementById('text-id'); 
         
         const ImageView = document.getElementById('image');
@@ -408,6 +449,11 @@
         const video = document.getElementById('video-view');
         
         document.addEventListener('DOMContentLoaded', () => {
+            // Khởi tạo bảng file từ danh sách
+            initializeFileTable(fileList);
+            
+            // Cập nhật lại btnRows sau khi khởi tạo
+            btnRows = document.querySelectorAll('.btn-row');
             // test thử
             // textid.textContent = document.querySelector('.btn-row.selected').textContent;
             btnLoad();
@@ -584,21 +630,14 @@
                 // Thêm class selected vào hàng được click
                 row.classList.add('selected');
                 
-                // test thử
-                // textid.textContent = row.textContent;
+                // Lấy type và path từ data attributes
+                const type = row.getAttribute('data-type');
+                const path = row.getAttribute('data-path');
+                
+                // Load media tự động
                 document.getElementById('message').style.display = 'none';
-                const type = row.querySelector('.type');
-                if (type.textContent === "Image") {
-                    ImageView.style.display = 'flex';
-                    VideoView.style.display = 'none';
-                } else if(type.textContent === "Video") {
-                    ImageView.style.display = 'none';
-                    VideoView.style.display = 'flex';
-                } else {
-                    ImageView.style.display = 'none';
-                    VideoView.style.display = 'none';
-                }
-                document.getElementById('viewer').style.padding = (type.textContent === "Image") ? '10px' : '0px';
+                loadMedia(type, path);
+                
                 if (window.innerWidth < 750 & btnMenu.display !== 'none') {
                     closeMenu();
                 }
