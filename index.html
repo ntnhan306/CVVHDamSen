@@ -216,9 +216,23 @@
             vertical-align: middle;
         }
 
+        /* Tbody cuộn nhưng ẩn scrollbar */
+        .file-table tbody {
+            display: block;
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+            scrollbar-width: none; /* Firefox */
+        }
+        .file-table tbody::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Edge */
+        }
+
         /* Chỉ kẻ đường ngang giữa các hàng, màu đen mờ */
         .file-table tbody tr {
             border-bottom: 2px solid rgba(0,0,0,0.2);
+            display: table;
+            width: 100%;
+            table-layout: fixed;
         }
         .file-table tbody tr:last-child {
             border-bottom: none;
